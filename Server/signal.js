@@ -5,15 +5,16 @@ export function registerSignal(io) {
     console.log("[IO] Cliente conectado:", socket.id);
 
     // Unirse a una sala con nombre y usuario
-    socket.on("join-room", async ({ sala, nombre }) => {
+    socket.on("join-room", async ( sala, nombre ) => {
       socket.sala = sala;
       socket.nombre = nombre;
 
       await socket.join(sala);
-      console.log(`[ROOM] ${nombre} (${socket.id}) se une a sala: ${sala}`);
+      console.log(`[SALA] ${nombre} se une a sala: ${sala}`);
 
       // Obtener otros usuarios de la sala
       const socketsEnSala = await io.in(sala).fetchSockets();
+
       const otros = socketsEnSala
         .filter(s => s.id !== socket.id)
         .map(s => ({ id: s.id, nombre: s.nombre || "Desconocido" }));
@@ -30,7 +31,7 @@ export function registerSignal(io) {
 
     // OFFER dirigida a un usuario concreto
     socket.on("offer", ({ targetId, offer, from, nombre }) => {
-      console.log(`[SIGNAL] Offer de ${from} → ${targetId}(nombre: ${nombre})`);
+      console.log(`[SIGNAL] Offer de ${socket.nombre} para ${nombre} `);
       io.to(targetId).emit("offer", { from, offer, nombre });
     });
 

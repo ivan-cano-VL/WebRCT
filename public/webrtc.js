@@ -13,7 +13,8 @@ export const dataChannels = {};     // { peerId: RTCDataChannel }
 const remoteStreams = {};           // { peerId: MediaStream }
 // ICE pendientes por usuario
 const pendingCandidates = {};       // { peerId: RTCIceCandidate[] }
-export const nombresPeers = {}; // { peerId : nombreUsuario }
+
+export const nombresPeers = {}; // Almacen de nombres de usuario
 
 export async function iniciarCamaraLocal() {
   await getLocalStream();
@@ -75,12 +76,12 @@ async function getLocalStream() {
 
 
 // Crear o reutilizar RTCPeerConnection para un peerId
-function crearConexion(peerId, onLocalCandidate) {
+function crearConexion(peerId, onLocalCandidate, nombre) {
   if (conexions[peerId]) {
     return conexions[peerId];
   }
 
-  console.log("[P2P] Creando RTCPeerConnection para", peerId);
+  console.log(`[P2P] Creando RTCPeerConnection con ${nombre}`, peerId);
 
   const pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
@@ -91,21 +92,21 @@ function crearConexion(peerId, onLocalCandidate) {
 
   pc.onicecandidate = e => {
     if (e.candidate) {
-      console.log("[ICE] Candidate local para", peerId, e.candidate);
+      console.log(`[ICE] Candidate local para ${nombre}`, e.candidate);
       onLocalCandidate(e.candidate);
     }
   };
 
   pc.oniceconnectionstatechange = () => {
-    console.log("[ICE] state con", peerId, "=", pc.iceConnectionState);
+    console.log(`[ICE] state con ${nombre} = ` , pc.iceConnectionState);
   };
 
   pc.onconnectionstatechange = () => {
-    console.log("[P2P] Connection state con", peerId, "=", pc.connectionState);
+    console.log(`[P2P] Connection state con ${nombre} = ` , pc.connectionState);
   };
 
   pc.ontrack = event => {
-    console.log("[P2P] Track remoto recibido de", peerId);
+    console.log(`[P2P] Track remoto recibido de ${nombre}`);
 
     let stream = remoteStreams[peerId];
     if (!stream) {
@@ -179,12 +180,12 @@ function adjuntarStreamRemoto(peerId, stream, nombreUsuario = "Usuario") {
 // FLUJO: soy el que llama (creo Offer)
 // ====================
 export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendCandidate) {
-  console.log("[P2P] Iniciando conexión con", peerId);
+  console.log("[P2P] Iniciando conexión con", nombreUsuario);
 
   await getLocalStream();
   nombresPeers[peerId] = nombreUsuario;
 
-  const pc = crearConexion(peerId, candidate => sendCandidate(candidate));
+  const pc = crearConexion(peerId, candidate => sendCandidate(candidate), nombreUsuario);
 
   // Creamos DataChannel para chat
   const channel = pc.createDataChannel("chat");
@@ -198,7 +199,7 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
-  console.log("[P2P] Offer creada para", peerId);
+  console.log(`[P2P] Offer creada para ${nombreUsuario} `, peerId);
   sendOffer(offer);
 }
 
@@ -206,7 +207,7 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
 // FLUJO: recibo una Offer (respondo con Answer)
 // ====================
 export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sendCandidate) {
-  console.log("[SIGNAL] Offer recibida de", peerId);
+  console.log(`[SIGNAL] Offer recibida de`, peerId);
   nombresPeers[peerId] = nombreUsuario;
 
   await getLocalStream();
@@ -217,7 +218,7 @@ export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sen
     const channel = e.channel;
     dataChannels[peerId] = channel;
 
-    channel.onopen = () => console.log("[P2P] DataChannel ABIERTO con", peerId);
+    channel.onopen = () => console.log(`[P2P] DataChannel ABIERTO con ${nombre}`, peerId);
     channel.onmessage = ev => {
       procesarMensajeRecibido(ev.data);
     };

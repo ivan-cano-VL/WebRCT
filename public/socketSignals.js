@@ -15,32 +15,32 @@ import {
  * sala -> nombre de la sala
  * onSystemMessage(texto, color) -> callback para pintar mensajes en la UI
  */
-export function initSocketSignals({ nombre, sala, onSystemMessage }) {
+export function initSocketSignals( config ) {
+  const { nombre, sala, onSystemMessage } = config
+
   const socket = io();
   let myId = null;
 
   socket.on("connect", () => {
     myId = socket.id;
-    console.log("[SOCKET] Conectado como", myId);
 
-    socket.emit("join-room", {
-      sala,
-      nombre
-    });
+  console.log(`[SOCKET] Conectado como ${nombre}`, myId);
+
+    socket.emit("join-room", sala, nombre);
 
     onSystemMessage(`Te has unido a la sala "${sala}" como ${nombre}`, "info");
   });
 
   // Usuarios que ya estaban en la sala cuando entro
   socket.on("existing-users", usuarios => {
-    console.log("[ROOM] Usuarios ya en la sala:", usuarios);
+    console.log("[SALA] Usuarios ya en la sala:", usuarios);
 
     usuarios.forEach(u => {
       // Soy el nuevo → inicio conexión (creo Offer) hacia cada uno
       iniciarConexionCon(
         u.id,
         u.nombre,
-        offer => socket.emit("offer", { targetId: u.id, offer, from: myId, nombre: nombre }),
+        offer => socket.emit("offer", { targetId: u.id, offer, from: myId, nombre: u.nombre }),
         candidate => socket.emit("candidate", { targetId: u.id, candidate, from: myId })
       );
     });

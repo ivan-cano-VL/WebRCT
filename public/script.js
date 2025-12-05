@@ -17,11 +17,14 @@ if (!nombreNavegador || !sala) {
 //---------------------------------------------------------
 // Inicializar signaling (Socket.IO + WebRTC + salas)
 //---------------------------------------------------------
-const { socket, getMyId } = initSocketSignals({
+const conexionSocket = initSocketSignals({
   nombre: nombreNavegador,
-  sala,
-  onSystemMessage: (texto, color) => mostrarAlerta(texto, color)
+  sala: sala,
+  onSystemMessage: mostrarAlerta
 });
+
+const socket = conexionSocket.socket
+const getMyId = conexionSocket.getMyId
 
 // 👉 Arrancamos la cámara local nada más entrar a la sala
 iniciarCamaraLocal().catch(err =>
