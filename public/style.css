@@ -1,0 +1,104 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Estructura GRID principal */
+#app {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 70% 30%;
+  grid-template-rows: 85% 15%;
+  gap: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+/* =========== ZONA CAMARAS =========== */
+
+#camaras {
+  background: #ececec;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-auto-rows: 1fr;      /* 🔹 cada fila ocupa la misma parte del alto */
+  gap: 10px;
+  padding: 10px;
+  min-height: 0;
+}
+
+#camaras > div {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+
+/* Videos */
+#camaras video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 2px solid #555;
+  border-radius: 6px;
+  background: #000;
+}
+
+/* =========== ZONA CHAT =========== */
+#zona-chat {
+  background: #f6f6f6;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  min-height: 0;
+}
+
+#mensajes {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+#zona-input {
+  display: flex;
+  border-top: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+#zona-input input {
+  flex: 1;
+  padding: 8px;
+  border: none;
+}
+
+#zona-input button {
+  width: 80px;
+  border: none;
+  background: #333;
+  color: white;
+  cursor: pointer;
+}
+
+/* =========== ZONA ALERTAS =========== */
+#zona-alertas {
+  background: #eee;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  overflow-y: auto;
+  grid-column: 1 / 3;
+  grid-row: 2 / 3;
+}

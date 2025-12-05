@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Simple</title>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+    <h1>Virtual LIFE</h1>
+
+    <div id="app">
+
+        <div id="camaras"></div>
+
+        <div id="zona-chat">
+            <div id="mensajes" class="mensajes"></div>
+            <div id="zona-input">
+                <input type="text" id="texto" placeholder="Escribe un mensaje...">
+                <button id="enviar">Enviar</button>
+            </div>
+        </div>
+
+        <div id="zona-alertas">
+
+        </div>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Cargar Socket.IO -->
+    <script type="module" src="script.js"></script>
+
+</body>
+
+</html>
