@@ -40,7 +40,7 @@ export function initSocketSignals( config ) {
       iniciarConexionCon(
         u.id,
         u.nombre,
-        offer => socket.emit("offer", { targetId: u.id, offer, from: myId, nombre: u.nombre }),
+        offer => socket.emit("offer", { targetId: u.id, offer, from: myId, nombre: nombre }),
         candidate => socket.emit("candidate", { targetId: u.id, candidate, from: myId })
       );
     });
@@ -66,24 +66,24 @@ export function initSocketSignals( config ) {
   // SIGNALING: Offer / Answer / Candidate
   // ---------------------------------------------------------
   socket.on("offer", ({ from, offer, nombre }) => {
-    console.log("[SIGNAL] Offer recibida de", from);
+    console.log(`[SIGNAL] Offer recibida de ${nombre}`, from);
 
     recibirOffer(
       from,
       offer,
       nombre,
-      answer => socket.emit("answer", { targetId: from, answer, from: myId }),
+      answer => socket.emit("answer", { targetId: from, answer, from: myId}),
       candidate => socket.emit("candidate", { targetId: from, candidate, from: myId })
     );
   });
 
-  socket.on("answer", ({ from, answer }) => {
-    console.log("[SIGNAL] Answer recibida de", from);
+  socket.on("answer", ({ from, answer, nombreEmisor }) => {
+    console.log("[SIGNAL] Answer recibida de " + nombreEmisor, from);
     recibirAnswer(from, answer);
   });
 
-  socket.on("candidate", ({ from, candidate }) => {
-    console.log("[SIGNAL] Candidate recibida de", from);
+  socket.on("candidate", ({ from, candidate, nombreEmisor }) => {
+    console.log("[SIGNAL] Candidate recibida de " + nombreEmisor," " + from);
     recibirCandidate(from, candidate);
   });
 

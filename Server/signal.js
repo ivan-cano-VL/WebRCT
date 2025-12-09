@@ -5,7 +5,7 @@ export function registerSignal(io) {
     console.log("[IO] Cliente conectado:", socket.id);
 
     // Unirse a una sala con nombre y usuario
-    socket.on("join-room", async ( sala, nombre ) => {
+    socket.on("join-room", async (sala, nombre) => {
       socket.sala = sala;
       socket.nombre = nombre;
 
@@ -31,20 +31,32 @@ export function registerSignal(io) {
 
     // OFFER dirigida a un usuario concreto
     socket.on("offer", ({ targetId, offer, from, nombre }) => {
-      console.log(`[SIGNAL] Offer de ${socket.nombre} para ${nombre} `);
+      const socketDestino = io.sockets.sockets.get(targetId);
+      const nombreDestino = socketDestino?.nombre;
+      console.log(`[SIGNAL] Offer de ${nombre} para ${nombreDestino} `);
       io.to(targetId).emit("offer", { from, offer, nombre });
     });
 
     // ANSWER dirigida
     socket.on("answer", ({ targetId, answer, from }) => {
-      console.log(`[SIGNAL] Answer de ${from} → ${targetId}`);
-      io.to(targetId).emit("answer", { from, answer });
+      const socketEmisor = io.sockets.sockets.get(from);
+      const nombreEmisor = socketEmisor?.nombre;
+
+      const socketDestino = io.sockets.sockets.get(targetId);
+      const nombreDestino = socketDestino?.nombre;
+      console.log(`[SIGNAL] Answer de ` + nombreEmisor + ` ${from } para ` + nombreDestino + ` ${targetId}`);
+      io.to(targetId).emit("answer", { from, answer, nombreEmisor });
     });
 
     // ICE CANDIDATE dirigida
     socket.on("candidate", ({ targetId, candidate, from }) => {
-      console.log(`[SIGNAL] Candidate de ${from} → ${targetId}`);
-      io.to(targetId).emit("candidate", { from, candidate });
+      const socketEmisor = io.sockets.sockets.get(from);
+      const nombreEmisor = socketEmisor?.nombre;
+
+      const socketDestino = io.sockets.sockets.get(targetId);
+      const nombreDestino = socketDestino?.nombre;
+      console.log(`[SIGNAL] Candidate de ` + nombreEmisor + ` ${from} para ` + nombreDestino + ` ${targetId}`);
+      io.to(targetId).emit("candidate", { from, candidate, nombreEmisor });
     });
 
     socket.on("disconnect", () => {

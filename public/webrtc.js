@@ -77,11 +77,12 @@ async function getLocalStream() {
 
 // Crear o reutilizar RTCPeerConnection para un peerId
 function crearConexion(peerId, onLocalCandidate, nombre) {
+  nombre = nombre || nombresPeers[peerId] || "Desconocido";
   if (conexions[peerId]) {
     return conexions[peerId];
   }
 
-  console.log(`[P2P] Creando RTCPeerConnection con ${nombre}`, peerId);
+  console.log(`[P2P] Creando RTCPeerConnection con ` + nombre, peerId);
 
   const pc = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
@@ -92,21 +93,21 @@ function crearConexion(peerId, onLocalCandidate, nombre) {
 
   pc.onicecandidate = e => {
     if (e.candidate) {
-      console.log(`[ICE] Candidate local para ${nombre}`, e.candidate);
+      console.log(`[ICE] Candidate local para ` + nombre, e.candidate);
       onLocalCandidate(e.candidate);
     }
   };
 
   pc.oniceconnectionstatechange = () => {
-    console.log(`[ICE] state con ${nombre} = ` , pc.iceConnectionState);
+    console.log(`[ICE] state con = ` + nombre, pc.iceConnectionState);
   };
 
   pc.onconnectionstatechange = () => {
-    console.log(`[P2P] Connection state con ${nombre} = ` , pc.connectionState);
+    console.log(`[P2P] Connection state con = ` + nombre, pc.connectionState);
   };
 
   pc.ontrack = event => {
-    console.log(`[P2P] Track remoto recibido de ${nombre}`);
+    console.log(`[P2P] Track remoto recibido de ` + nombre);
 
     let stream = remoteStreams[peerId];
     if (!stream) {
@@ -191,7 +192,7 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
   const channel = pc.createDataChannel("chat");
   dataChannels[peerId] = channel;
 
-  channel.onopen = () => console.log("[P2P] DataChannel ABIERTO con", peerId);
+  channel.onopen = () => console.log("[P2P] DataChannel ABIERTO con " + nombreUsuario, peerId);
   channel.onmessage = e => {
     procesarMensajeRecibido(e.data);
   };
@@ -207,18 +208,18 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
 // FLUJO: recibo una Offer (respondo con Answer)
 // ====================
 export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sendCandidate) {
-  console.log(`[SIGNAL] Offer recibida de`, peerId);
   nombresPeers[peerId] = nombreUsuario;
+  console.log(`[SIGNAL] Offer recibida de ` + nombreUsuario , peerId);
 
   await getLocalStream();
   const pc = crearConexion(peerId, candidate => sendCandidate(candidate));
 
   pc.ondatachannel = e => {
-    console.log("[P2P] DataChannel recibido de", peerId);
+    console.log("[P2P] DataChannel recibido de " + nombreUsuario, peerId);
     const channel = e.channel;
     dataChannels[peerId] = channel;
 
-    channel.onopen = () => console.log(`[P2P] DataChannel ABIERTO con ${nombre}`, peerId);
+    channel.onopen = () => console.log(`[P2P] DataChannel ABIERTO con ` + nombreUsuario, peerId);
     channel.onmessage = ev => {
       procesarMensajeRecibido(ev.data);
     };
@@ -228,8 +229,8 @@ export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sen
 
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
-
-  console.log("[P2P] Answer creada para", peerId);
+  const nombre = nombresPeers[peerId] || "Desconocido";
+  console.log("[P2P] Answer creada para " + nombre, peerId);
   sendAnswer(answer);
 
   // Aplicar ICE pendientes si hubiera
@@ -245,11 +246,12 @@ export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sen
 // FLUJO: recibo una Answer
 // ====================
 export async function recibirAnswer(peerId, answer) {
-  console.log("[SIGNAL] Answer recibida de", peerId);
+  const nombre = nombresPeers[peerId] || "Desconocido";
+  console.log("[SIGNAL] Answer recibida de " + nombre, peerId);
 
   const pc = conexions[peerId];
   if (!pc) {
-    console.error("[P2P] No existe RTCPeerConnection para", peerId);
+    console.error("[P2P] No existe RTCPeerConnection para " + nombre, peerId);
     return;
   }
 
@@ -271,15 +273,17 @@ export async function recibirCandidate(peerId, candidate) {
   if (!pc || !pc.remoteDescription) {
     pendingCandidates[peerId] = pendingCandidates[peerId] || [];
     pendingCandidates[peerId].push(candidate);
-    console.log("[ICE] Candidate guardado en pendientes para", peerId);
+    const nombre = nombresPeers[peerId] || "Desconocido";
+    console.log("[ICE] Candidate guardado en pendientes para " + nombre, peerId);
     return;
   }
 
   try {
     await pc.addIceCandidate(candidate);
-    console.log("[ICE] Candidate aplicado para", peerId);
+    const nombre = nombresPeers[peerId] || "Desconocido";
+    console.log("[ICE] Candidate aplicado para " + nombre, peerId);
   } catch (err) {
-    console.error("[ICE ERROR] Error al agregar candidate para", peerId, err);
+    console.error("[ICE ERROR] Error al agregar candidate para " + nombre, peerId, err);
   }
 }
 
@@ -302,8 +306,8 @@ export function enviarMensajeATodos(paquete) {
 }
 
 export function eliminarUsuarioPeer(peerId) {
-
-  console.log("[P2P] Eliminando conexión con", peerId);
+  const nombre = nombresPeers[peerId] || "Desconocido";
+  console.log("[P2P] Eliminando conexión con " + nombre, peerId);
 
   if (conexions[peerId]) {
     conexions[peerId].close();
