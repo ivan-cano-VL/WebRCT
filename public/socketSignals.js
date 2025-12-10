@@ -8,6 +8,7 @@ import {
   recibirCandidate,
   eliminarUsuarioPeer
 } from "./webrtc.js";
+import { actualizarUI_Microfono } from "./webrtc.js";
 
 /**
  * Inicializa toda la lógica de sockets (salas + WebRTC)
@@ -15,10 +16,12 @@ import {
  * sala -> nombre de la sala
  * onSystemMessage(texto, color) -> callback para pintar mensajes en la UI
  */
+
+export const socket = io();
+
 export function initSocketSignals( config ) {
   const { nombre, sala, onSystemMessage } = config
 
-  const socket = io();
   let myId = null;
 
   socket.on("connect", () => {
@@ -90,3 +93,5 @@ export function initSocketSignals( config ) {
   // Devolvemos el socket por si más adelante quieres usarlo para otras cosas
   return { socket, getMyId: () => myId };
 }
+
+

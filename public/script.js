@@ -2,6 +2,7 @@ import { inputTexto, btnEnviar, mostrarMensaje, mostrarAlerta } from "./ui.js";
 import { enviarMensajeATodos, iniciarCamaraLocal } from "./webrtc.js";
 import { mostrarMensajePropio } from "./chat.js";
 import { initSocketSignals } from "./socketSignals.js";
+import { toggleMicrofono, microfonoActivo } from "./micro.js";
 
 //---------------------------------------------------------
 // IDENTIFICACIÓN + SALA
@@ -50,3 +51,4 @@ function enviar() {
   mostrarMensajePropio(nombreNavegador, texto); // UI local
   inputTexto.value = "";
 }
+

@@ -25,7 +25,7 @@ async function getLocalStream() {
   if (!localStream) {
     localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
-      audio: false
+      audio: true
     });
 
     // 🟢 CREAR ETIQUETA COMO EL RESTO
@@ -62,8 +62,39 @@ async function getLocalStream() {
       label.style.fontSize = "14px";
       label.style.pointerEvents = "none";
 
+      // Botón de micrófono flotante
+      const btnMic = document.createElement("button");
+      btnMic.id = "btnMicVideo";
+      btnMic.innerHTML = "🎤";
+      btnMic.style.position = "absolute";
+      btnMic.style.bottom = "5px";
+      btnMic.style.right = "5px";
+      btnMic.style.padding = "6px 10px";
+      btnMic.style.background = "rgba(0,0,0,0.6)";
+      btnMic.style.color = "white";
+      btnMic.style.border = "none";
+      btnMic.style.borderRadius = "50%";
+      btnMic.style.cursor = "pointer";
+      btnMic.style.fontSize = "18px";
+      btnMic.style.zIndex = "5";
+
+      btnMic.addEventListener("click", () => {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (!audioTrack) return;
+
+        audioTrack.enabled = !audioTrack.enabled;
+
+        btnMic.innerHTML = audioTrack.enabled ? "🎤" : "🔇";
+        btnMic.style.background = audioTrack.enabled
+          ? "rgba(0,0,0,0.6)"
+          : "rgba(255,0,0,0.65)";
+      });
+
+      // Insertar en wrapper
       wrapper.appendChild(video);
       wrapper.appendChild(label);
+      wrapper.appendChild(btnMic);
+
       contenedor.insertBefore(wrapper, contenedor.firstChild);
     }
 
@@ -160,6 +191,7 @@ function adjuntarStreamRemoto(peerId, stream, nombreUsuario = "Usuario") {
     video.id = `remote-${peerId}`;
     video.autoplay = true;
     video.playsInline = true;
+    video.muted = false;
     video.style.width = "100%";
     video.style.height = "100%";
     video.style.objectFit = "cover";
@@ -209,7 +241,7 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
 // ====================
 export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sendCandidate) {
   nombresPeers[peerId] = nombreUsuario;
-  console.log(`[SIGNAL] Offer recibida de ` + nombreUsuario , peerId);
+  console.log(`[SIGNAL] Offer recibida de ` + nombreUsuario, peerId);
 
   await getLocalStream();
   const pc = crearConexion(peerId, candidate => sendCandidate(candidate));
@@ -330,5 +362,11 @@ export function eliminarUsuarioPeer(peerId) {
   if (wrapper && wrapper.parentNode) {
     wrapper.parentNode.removeChild(wrapper);
   }
+}
+
+export function actualizarUI_Microfono(peerId, activo) {
+  const icon = document.getElementById(`mic-${peerId}`);
+  if (!icon) return;
+  icon.style.display = activo ? "none" : "block";
 }
 
