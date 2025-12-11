@@ -1,89 +1,89 @@
 import { socket } from "./socket.js";
-import { state } from "../state.js";
+import { state } from "../core/state.js";
 
 import {
-  iniciarConexionCon,
-  recibirOffer,
-  recibirAnswer,
-  recibirCandidate,
-  eliminarUsuarioPeer
-} from "../webrtc.js";
+    iniciarConexionCon,
+    recibirOffer,
+    recibirAnswer,
+    recibirCandidate,
+    eliminarUsuarioPeer
+} from "../core/webrtc.js";
 
 import {
-  emitJoinRoom,
-  emitOffer,
-  emitAnswer,
-  emitCandidate
+    emitJoinRoom,
+    emitOffer,
+    emitAnswer,
+    emitCandidate
 } from "./signalEmit.js";
 
 // Función desde script.js
 export function initSocketSignals({ nombre, sala, onSystemMessage }) {
 
-  // Cuando me conecto al servidor
-  socket.on("connect", () => {
-    state.miId = socket.id;
-    state.miNombre = nombre;
+    // Cuando me conecto al servidor
+    socket.on("connect", () => {
+        state.miId = socket.id;
+        state.miNombre = nombre;
 
-    console.log(`[SOCKET] Conectado como ${nombre}`, state.miId);
+        console.log(`[SOCKET] Conectado como ${nombre}`, state.miId);
 
-    emitJoinRoom(sala, nombre);
+        emitJoinRoom(sala, nombre);
 
-    onSystemMessage(`Te has unido a la sala "${sala}" como ${nombre}`, "info");
-  });
-
-  // Usuarios que ya estaban en la sala cuando entro
-  socket.on("existing-users", usuarios => {
-    console.log("[SALA] Usuarios ya en la sala:", usuarios);
-
-    usuarios.forEach(u => {
-      // Soy el nuevo → inicio conexión (creo Offer) hacia cada uno
-      iniciarConexionCon(
-        u.id,
-        u.nombre,
-        offer => emitOffer(u.id, offer, nombre),
-        candidate => emitCandidate(u.id, candidate)
-      );
+        onSystemMessage(`Te has unido a la sala "${sala}" como ${nombre}`, "info");
     });
-  });
 
-  // Aviso cuando entra alguien nuevo (será él quien nos llame)
-  socket.on("user-joined", usuario => {
-    console.log("[ROOM] Usuario se une:", usuario);
-    onSystemMessage(`${usuario.nombre} se ha unido a la sala`, "join");
-  });
+    // Usuarios que ya estaban en la sala cuando entro
+    socket.on("existing-users", usuarios => {
+        console.log("[SALA] Usuarios ya en la sala:", usuarios);
 
-  // Aviso cuando alguien se va
-  socket.on("user-left", usuario => {
-    console.log("[ROOM] Usuario salió:", usuario);
-    eliminarUsuarioPeer(usuario.id);
-    onSystemMessage(`${usuario?.nombre || "Alguien"} ha salido de la sala`, "leave");
-  });
+        usuarios.forEach(u => {
+            // Soy el nuevo → inicio conexión (creo Offer) hacia cada uno
+            iniciarConexionCon(
+                u.id,
+                u.nombre,
+                offer => emitOffer(u.id, offer, nombre),
+                candidate => emitCandidate(u.id, candidate)
+            );
+        });
+    });
 
-  // -----------------------------
-  // SIGNALING: Offer / Answer / ICE
-  // -----------------------------
-  socket.on("offer", ({ from, offer, nombre }) => {
-    console.log(`[SIGNAL] Offer recibida de ${nombre}`, from);
+    // Aviso cuando entra alguien nuevo (será él quien nos llame)
+    socket.on("user-joined", usuario => {
+        console.log("[ROOM] Usuario se une:", usuario);
+        onSystemMessage(`${usuario.nombre} se ha unido a la sala`, "join");
+    });
 
-    recibirOffer(
-      from,
-      offer,
-      nombre,
-      answer => emitAnswer(from, answer),
-      candidate => emitCandidate(from, candidate)
-    );
-  });
+    // Aviso cuando alguien se va
+    socket.on("user-left", usuario => {
+        console.log("[ROOM] Usuario salió:", usuario);
+        eliminarUsuarioPeer(usuario.id);
+        onSystemMessage(`${usuario?.nombre || "Alguien"} ha salido de la sala`, "leave");
+    });
 
-  socket.on("answer", ({ from, answer, nombreEmisor }) => {
-    console.log("[SIGNAL] Answer recibida de " + nombreEmisor, from);
-    recibirAnswer(from, answer);
-  });
+    // -----------------------------
+    // SIGNALING: Offer / Answer / ICE
+    // -----------------------------
+    socket.on("offer", ({ from, offer, nombre }) => {
+        console.log(`[SIGNAL] Offer recibida de ${nombre}`, from);
 
-  socket.on("candidate", ({ from, candidate, nombreEmisor }) => {
-    console.log("[SIGNAL] Candidate recibida de " + nombreEmisor, " " + from);
-    recibirCandidate(from, candidate);
-  });
+        recibirOffer(
+            from,
+            offer,
+            nombre,
+            answer => emitAnswer(from, answer),
+            candidate => emitCandidate(from, candidate)
+        );
+    });
 
-  // Si quieres seguir usando esto en script.js:
-  return { socket, getMyId: () => state.miId };
+    socket.on("answer", ({ from, answer, nombreEmisor }) => {
+        console.log("[SIGNAL] Answer recibida de " + nombreEmisor, from);
+        recibirAnswer(from, answer);
+    });
+
+    socket.on("candidate", ({ from, candidate, nombreEmisor }) => {
+        console.log("[SIGNAL] Candidate recibida de " + nombreEmisor, " " + from);
+        recibirCandidate(from, candidate);
+    });
+
+    // Si quieres seguir usando esto en script.js:
+    return { socket, getMyId: () => state.miId };
 }

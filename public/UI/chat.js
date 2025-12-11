@@ -1,7 +1,7 @@
 // chat.js
 // Lógica de chat (solo UI), independiente de WebRTC
 
-import { mostrarMensaje } from "./ui.js";
+import { mostrarMensaje } from "./messageUI.js";
 
 // Mostrar mi propio mensaje
 export function mostrarMensajePropio(nombre, texto) {

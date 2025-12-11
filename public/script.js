@@ -1,8 +1,8 @@
-import { inputTexto, btnEnviar, mostrarAlerta } from "./ui.js";
-import { enviarMensajeATodos } from "./webrtc.js";
-import { mostrarMensajePropio } from "./chat.js";
+import { inputTexto, btnEnviar, mostrarAlerta } from "./UI/messageUI.js";
+import { enviarMensajeATodos } from "./core/webrtc.js";
+import { mostrarMensajePropio } from "./UI/chat.js";
 import { initSocketSignals } from "./signaling/signalOn.js";
-import { iniciarCamaraLocal } from "./media.js";
+import { iniciarCamaraLocal } from "./core/media.js";
 
 //---------------------------------------------------------
 // IDENTIFICACIÓN + SALA

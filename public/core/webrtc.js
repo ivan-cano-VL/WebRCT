@@ -1,10 +1,10 @@
 // webrtc.js
 // WebRTC multiusuario (mesh) usando mapas: conexions, dataChannels, etc.
 
-import { procesarMensajeRecibido } from "./chat.js";
+import { procesarMensajeRecibido } from "../UI/chat.js";
 import { state } from "./state.js";
 import { getLocalStream } from "./media.js";
-import { adjuntarStreamRemoto } from "./remoteUI.js";
+import { adjuntarStreamRemoto } from "../UI/remoteUI.js";
 
 // Stream remoto por usuario
 const remoteStreams = {};           // { peerId: MediaStream }
@@ -194,7 +194,7 @@ export function eliminarUsuarioPeer(peerId) {
   const nombre = state.nombresPeers[peerId] || "Desconocido";
   console.log("[P2P] Eliminando conexión con " + nombre, peerId);
 
-  if (state.conexiones[peerId]) { 
+  if (state.conexiones[peerId]) {
     state.conexiones[peerId].close();
     delete state.conexiones[peerId];
   }

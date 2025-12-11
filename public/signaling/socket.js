@@ -1,7 +1,7 @@
 // socket.js
 // Punto donde se crea el socket de Socket.IO
 
-import { state } from "../state.js";    
+import { state } from "../core/state.js";
 
 // Creamos el socket global para toda la app
 export const socket = io();
