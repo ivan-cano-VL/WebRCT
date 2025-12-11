@@ -1,8 +1,8 @@
-import { inputTexto, btnEnviar, mostrarMensaje, mostrarAlerta } from "./ui.js";
-import { enviarMensajeATodos, iniciarCamaraLocal } from "./webrtc.js";
+import { inputTexto, btnEnviar, mostrarAlerta } from "./ui.js";
+import { enviarMensajeATodos } from "./webrtc.js";
 import { mostrarMensajePropio } from "./chat.js";
-import { initSocketSignals } from "./socketSignals.js";
-import { toggleMicrofono, microfonoActivo } from "./micro.js";
+import { initSocketSignals } from "./signaling/signalOn.js";
+import { iniciarCamaraLocal } from "./media.js";
 
 //---------------------------------------------------------
 // IDENTIFICACIÓN + SALA
@@ -24,8 +24,6 @@ const conexionSocket = initSocketSignals({
   onSystemMessage: mostrarAlerta
 });
 
-const socket = conexionSocket.socket
-const getMyId = conexionSocket.getMyId
 
 // 👉 Arrancamos la cámara local nada más entrar a la sala
 iniciarCamaraLocal().catch(err =>

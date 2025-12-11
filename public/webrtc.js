@@ -2,115 +2,18 @@
 // WebRTC multiusuario (mesh) usando mapas: conexions, dataChannels, etc.
 
 import { procesarMensajeRecibido } from "./chat.js";
+import { state } from "./state.js";
+import { getLocalStream } from "./media.js";
+import { adjuntarStreamRemoto } from "./remoteUI.js";
 
-export let localStream = null;
-
-// Un RTCPeerConnection por cada usuario
-export const conexions = {};        // { peerId: RTCPeerConnection }
-// Un DataChannel por usuario (para chat)
-export const dataChannels = {};     // { peerId: RTCDataChannel }
 // Stream remoto por usuario
 const remoteStreams = {};           // { peerId: MediaStream }
-// ICE pendientes por usuario
-const pendingCandidates = {};       // { peerId: RTCIceCandidate[] }
-
-export const nombresPeers = {}; // Almacen de nombres de usuario
-
-export async function iniciarCamaraLocal() {
-  await getLocalStream();
-}
-
-// Obtener (y crear si hace falta) el stream local
-async function getLocalStream() {
-  if (!localStream) {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
-    });
-
-    // 🟢 CREAR ETIQUETA COMO EL RESTO
-    const contenedor = document.getElementById("camaras");
-
-    // Si ya existe, no lo recreamos
-    let wrapper = document.getElementById("wrap-local");
-    if (!wrapper) {
-      wrapper = document.createElement("div");
-      wrapper.id = "wrap-local";
-      wrapper.style.position = "relative";
-      wrapper.style.width = "100%";
-      wrapper.style.height = "100%";
-
-      let video = document.createElement("video");
-      video.id = "local";
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.style.width = "100%";
-      video.style.height = "100%";
-      video.style.objectFit = "cover";
-
-      const label = document.createElement("div");
-      label.id = "label-local";
-      label.textContent = "Yo";
-      label.style.position = "absolute";
-      label.style.bottom = "5px";
-      label.style.left = "5px";
-      label.style.padding = "2px 6px";
-      label.style.background = "rgba(0,0,0,0.6)";
-      label.style.color = "white";
-      label.style.borderRadius = "4px";
-      label.style.fontSize = "14px";
-      label.style.pointerEvents = "none";
-
-      // Botón de micrófono flotante
-      const btnMic = document.createElement("button");
-      btnMic.id = "btnMicVideo";
-      btnMic.innerHTML = "🎤";
-      btnMic.style.position = "absolute";
-      btnMic.style.bottom = "5px";
-      btnMic.style.right = "5px";
-      btnMic.style.padding = "6px 10px";
-      btnMic.style.background = "rgba(0,0,0,0.6)";
-      btnMic.style.color = "white";
-      btnMic.style.border = "none";
-      btnMic.style.borderRadius = "50%";
-      btnMic.style.cursor = "pointer";
-      btnMic.style.fontSize = "18px";
-      btnMic.style.zIndex = "5";
-
-      btnMic.addEventListener("click", () => {
-        const audioTrack = localStream.getAudioTracks()[0];
-        if (!audioTrack) return;
-
-        audioTrack.enabled = !audioTrack.enabled;
-
-        btnMic.innerHTML = audioTrack.enabled ? "🎤" : "🔇";
-        btnMic.style.background = audioTrack.enabled
-          ? "rgba(0,0,0,0.6)"
-          : "rgba(255,0,0,0.65)";
-      });
-
-      // Insertar en wrapper
-      wrapper.appendChild(video);
-      wrapper.appendChild(label);
-      wrapper.appendChild(btnMic);
-
-      contenedor.insertBefore(wrapper, contenedor.firstChild);
-    }
-
-    document.getElementById("local").srcObject = localStream;
-    console.log("[P2P] Cámara local activada");
-  }
-
-  return localStream;
-}
-
 
 // Crear o reutilizar RTCPeerConnection para un peerId
 function crearConexion(peerId, onLocalCandidate, nombre) {
-  nombre = nombre || nombresPeers[peerId] || "Desconocido";
-  if (conexions[peerId]) {
-    return conexions[peerId];
+  nombre = nombre || state.nombresPeers[peerId] || "Desconocido";
+  if (state.conexiones[peerId]) {
+    return state.conexiones[peerId];
   }
 
   console.log(`[P2P] Creando RTCPeerConnection con ` + nombre, peerId);
@@ -119,8 +22,8 @@ function crearConexion(peerId, onLocalCandidate, nombre) {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
   });
 
-  conexions[peerId] = pc;
-  pendingCandidates[peerId] = pendingCandidates[peerId] || [];
+  state.conexiones[peerId] = pc;
+  state.pendingCandidates[peerId] = state.pendingCandidates[peerId] || [];
 
   pc.onicecandidate = e => {
     if (e.candidate) {
@@ -144,69 +47,19 @@ function crearConexion(peerId, onLocalCandidate, nombre) {
     if (!stream) {
       stream = new MediaStream();
       remoteStreams[peerId] = stream;
-      adjuntarStreamRemoto(peerId, stream, nombresPeers[peerId]);
+      adjuntarStreamRemoto(peerId, stream, state.nombresPeers[peerId]);
     }
     stream.addTrack(event.track);
   };
 
   // Añadir pistas locales
-  if (localStream) {
-    localStream.getTracks().forEach(track => {
-      pc.addTrack(track, localStream);
+  if (state.localStream) {
+    state.localStream.getTracks().forEach(track => {
+      pc.addTrack(track, state.localStream);
     });
   }
 
   return pc;
-}
-
-// Crea o busca el <video> para un peer y le pone el stream
-function adjuntarStreamRemoto(peerId, stream, nombreUsuario = "Usuario") {
-  let contenedor = document.getElementById("camaras");
-
-  // Contenedor principal del video con nombre
-  let wrapper = document.getElementById(`wrap-${peerId}`);
-
-  if (!wrapper) {
-    wrapper = document.createElement("div");
-    wrapper.id = `wrap-${peerId}`;
-    wrapper.style.position = "relative";
-    wrapper.style.width = "100%";
-    wrapper.style.height = "100%";
-
-    // Etiqueta de nombre
-    const label = document.createElement("div");
-    label.id = `label-${peerId}`;
-    label.style.position = "absolute";
-    label.style.bottom = "5px";
-    label.style.left = "5px";
-    label.style.padding = "2px 6px";
-    label.style.background = "rgba(0,0,0,0.6)";
-    label.style.color = "white";
-    label.style.borderRadius = "4px";
-    label.style.fontSize = "14px";
-    label.style.pointerEvents = "none";
-
-    // Video
-    const video = document.createElement("video");
-    video.id = `remote-${peerId}`;
-    video.autoplay = true;
-    video.playsInline = true;
-    video.muted = false;
-    video.style.width = "100%";
-    video.style.height = "100%";
-    video.style.objectFit = "cover";
-
-    wrapper.appendChild(video);
-    wrapper.appendChild(label);
-    contenedor.appendChild(wrapper);
-  }
-
-  // SIEMPRE: actualizar nombre
-  const label = document.getElementById(`label-${peerId}`);
-  if (label) label.textContent = nombreUsuario || "Usuario";
-
-  const video = document.getElementById(`remote-${peerId}`);
-  if (video) video.srcObject = stream;
 }
 
 // ====================
@@ -216,13 +69,13 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
   console.log("[P2P] Iniciando conexión con", nombreUsuario);
 
   await getLocalStream();
-  nombresPeers[peerId] = nombreUsuario;
+  state.nombresPeers[peerId] = nombreUsuario;
 
   const pc = crearConexion(peerId, candidate => sendCandidate(candidate), nombreUsuario);
 
   // Creamos DataChannel para chat
   const channel = pc.createDataChannel("chat");
-  dataChannels[peerId] = channel;
+  state.dataChannels[peerId] = channel;
 
   channel.onopen = () => console.log("[P2P] DataChannel ABIERTO con " + nombreUsuario, peerId);
   channel.onmessage = e => {
@@ -240,7 +93,7 @@ export async function iniciarConexionCon(peerId, nombreUsuario, sendOffer, sendC
 // FLUJO: recibo una Offer (respondo con Answer)
 // ====================
 export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sendCandidate) {
-  nombresPeers[peerId] = nombreUsuario;
+  state.nombresPeers[peerId] = nombreUsuario;
   console.log(`[SIGNAL] Offer recibida de ` + nombreUsuario, peerId);
 
   await getLocalStream();
@@ -249,7 +102,7 @@ export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sen
   pc.ondatachannel = e => {
     console.log("[P2P] DataChannel recibido de " + nombreUsuario, peerId);
     const channel = e.channel;
-    dataChannels[peerId] = channel;
+    state.dataChannels[peerId] = channel;
 
     channel.onopen = () => console.log(`[P2P] DataChannel ABIERTO con ` + nombreUsuario, peerId);
     channel.onmessage = ev => {
@@ -261,16 +114,16 @@ export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sen
 
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
-  const nombre = nombresPeers[peerId] || "Desconocido";
+  const nombre = state.nombresPeers[peerId] || "Desconocido";
   console.log("[P2P] Answer creada para " + nombre, peerId);
   sendAnswer(answer);
 
   // Aplicar ICE pendientes si hubiera
-  if (pendingCandidates[peerId]?.length) {
-    for (const c of pendingCandidates[peerId]) {
+  if (state.pendingCandidates[peerId]?.length) {
+    for (const c of state.pendingCandidates[peerId]) {
       await pc.addIceCandidate(c);
     }
-    pendingCandidates[peerId] = [];
+    state.pendingCandidates[peerId] = [];
   }
 }
 
@@ -278,10 +131,10 @@ export async function recibirOffer(peerId, offer, nombreUsuario, sendAnswer, sen
 // FLUJO: recibo una Answer
 // ====================
 export async function recibirAnswer(peerId, answer) {
-  const nombre = nombresPeers[peerId] || "Desconocido";
+  const nombre = state.nombresPeers[peerId] || "Desconocido";
   console.log("[SIGNAL] Answer recibida de " + nombre, peerId);
 
-  const pc = conexions[peerId];
+  const pc = state.conexiones[peerId];
   if (!pc) {
     console.error("[P2P] No existe RTCPeerConnection para " + nombre, peerId);
     return;
@@ -289,11 +142,11 @@ export async function recibirAnswer(peerId, answer) {
 
   await pc.setRemoteDescription(answer);
 
-  if (pendingCandidates[peerId]?.length) {
-    for (const c of pendingCandidates[peerId]) {
+  if (state.pendingCandidates[peerId]?.length) {
+    for (const c of state.pendingCandidates[peerId]) {
       await pc.addIceCandidate(c);
     }
-    pendingCandidates[peerId] = [];
+    state.pendingCandidates[peerId] = [];
   }
 }
 
@@ -301,18 +154,18 @@ export async function recibirAnswer(peerId, answer) {
 // FLUJO: recibo ICE candidate
 // ====================
 export async function recibirCandidate(peerId, candidate) {
-  const pc = conexions[peerId];
+  const pc = state.conexiones[peerId];
   if (!pc || !pc.remoteDescription) {
-    pendingCandidates[peerId] = pendingCandidates[peerId] || [];
-    pendingCandidates[peerId].push(candidate);
-    const nombre = nombresPeers[peerId] || "Desconocido";
+    state.pendingCandidates[peerId] = state.pendingCandidates[peerId] || [];
+    state.pendingCandidates[peerId].push(candidate);
+    const nombre = state.nombresPeers[peerId] || "Desconocido";
     console.log("[ICE] Candidate guardado en pendientes para " + nombre, peerId);
     return;
   }
 
   try {
     await pc.addIceCandidate(candidate);
-    const nombre = nombresPeers[peerId] || "Desconocido";
+    const nombre = state.nombresPeers[peerId] || "Desconocido";
     console.log("[ICE] Candidate aplicado para " + nombre, peerId);
   } catch (err) {
     console.error("[ICE ERROR] Error al agregar candidate para " + nombre, peerId, err);
@@ -325,7 +178,7 @@ export async function recibirCandidate(peerId, candidate) {
 export function enviarMensajeATodos(paquete) {
   const data = JSON.stringify(paquete);
 
-  const canales = Object.values(dataChannels);
+  const canales = Object.values(state.dataChannels);
   if (!canales.length) {
     console.warn("[P2P] No hay dataChannels abiertos para enviar mensajes");
   }
@@ -338,20 +191,20 @@ export function enviarMensajeATodos(paquete) {
 }
 
 export function eliminarUsuarioPeer(peerId) {
-  const nombre = nombresPeers[peerId] || "Desconocido";
+  const nombre = state.nombresPeers[peerId] || "Desconocido";
   console.log("[P2P] Eliminando conexión con " + nombre, peerId);
 
-  if (conexions[peerId]) {
-    conexions[peerId].close();
-    delete conexions[peerId];
+  if (state.conexiones[peerId]) { 
+    state.conexiones[peerId].close();
+    delete state.conexiones[peerId];
   }
 
-  if (dataChannels[peerId]) {
-    delete dataChannels[peerId];
+  if (state.dataChannels[peerId]) {
+    delete state.dataChannels[peerId];
   }
 
-  if (nombresPeers[peerId]) {
-    delete nombresPeers[peerId];
+  if (state.nombresPeers[peerId]) {
+    delete state.nombresPeers[peerId];
   }
 
   if (remoteStreams[peerId]) {
@@ -362,11 +215,5 @@ export function eliminarUsuarioPeer(peerId) {
   if (wrapper && wrapper.parentNode) {
     wrapper.parentNode.removeChild(wrapper);
   }
-}
-
-export function actualizarUI_Microfono(peerId, activo) {
-  const icon = document.getElementById(`mic-${peerId}`);
-  if (!icon) return;
-  icon.style.display = activo ? "none" : "block";
 }
 

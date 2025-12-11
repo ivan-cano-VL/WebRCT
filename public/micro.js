@@ -1,13 +1,12 @@
-import { localStream } from "./webrtc.js";
-import { socket } from "./socketSignals.js";
+import { state } from "./state";
 
 export let microfonoActivo = true;
 
 // Cambia el estado del micro
 export function toggleMicrofono() {
-    if (!localStream) return;
+    if (!state.localStream) return;
 
-    const audioTracks = localStream.getAudioTracks();
+    const audioTracks = state.localStream.getAudioTracks();
     if (audioTracks.length === 0) return;
 
     microfonoActivo = !microfonoActivo;
